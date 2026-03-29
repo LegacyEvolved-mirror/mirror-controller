@@ -1,0 +1,58 @@
+name: Mirror Codeberg Repo
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore cached mirror
+        uses: actions/cache@v4
+        with:
+          path: repo.git
+          key: mirror-repo-cache
+
+      - name: Clone if not exists
+        run: |
+          if [ ! -d "repo.git" ]; then
+            git clone --mirror https://codeberg.org/piebot/LegacyEvolved.git repo.git
+          fi
+
+      - name: Update mirror (fetch all branches & tags)
+        run: |
+          cd repo.git
+          git remote set-url origin https://codeberg.org/piebot/LegacyEvolved.git
+          git fetch -p origin "+refs/heads/*:refs/heads/*" "+refs/tags/*:refs/tags/*"
+
+      - name: Configure git for large pushes
+        run: |
+          cd repo.git
+          git config http.postBuffer 524288000
+          git config http.maxRequestBuffer 100M
+          git config http.lowSpeedLimit 0
+          git config http.lowSpeedTime 999999
+
+      - name: Push all branches (with retry)
+        run: |
+          cd repo.git
+          for i in 1 2 3; do
+            git push --force --all https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/LegacyEvolved-mirror/LegacyEvolved.git && break
+            echo "Branches push failed, retrying in 10s..."
+            sleep 10
+          done
+
+      - name: Push all tags (with retry)
+        run: |
+          cd repo.git
+          for i in 1 2 3; do
+            git push --force --tags https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/LegacyEvolved-mirror/LegacyEvolved.git && break
+            echo "Tags push failed, retrying in 10s..."
+            sleep 10
+          done
