@@ -30,13 +30,15 @@ jobs:
           cd repo.git
           git remote set-url origin https://codeberg.org/piebot/LegacyEvolved.git
           git fetch -p origin "+refs/heads/*:refs/heads/*" "+refs/tags/*:refs/tags/*"
-
+      
       - name: Inject GitHub workflows
         run: |
-          cd repo.git
+          git clone repo.git workdir
+          cd workdir
+      
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-  
+      
           git clone --depth=1 https://github.com/smartcmd/MinecraftConsoles temp_repo
       
           rm -rf .github
@@ -46,6 +48,9 @@ jobs:
       
           git add .github
           git diff --cached --quiet || git commit -m "Inject GitHub workflows"
+
+          git push origin --all
+          git push origin --tags
 
       - name: Configure git for large pushes
         run: |
