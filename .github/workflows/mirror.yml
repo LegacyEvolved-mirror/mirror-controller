@@ -47,7 +47,8 @@ jobs:
           rm -rf temp_repo
       
           git add .github
-          git diff --cached --quiet || git commit -m "Inject GitHub workflows"
+          git diff --cached --quiet || \
+          GIT_COMMITTER_DATE="2000-01-01T00:00:00Z" git commit --date="2000-01-01T00:00:00Z" -m "Inject GitHub workflows"
 
           git push origin --all
           git push origin --tags
